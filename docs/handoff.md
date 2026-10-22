@@ -18,7 +18,7 @@ GitHub Issues/Milestones giữ tiến độ trực tiếp. Tài liệu này là 
 | CI, bootstrap, quy trình dev | #14–#16 đóng qua [PR #17](https://github.com/nguyenhuy158/task-hub/pull/17); [CI main](https://github.com/nguyenhuy158/task-hub/actions/runs/39713505366) |
 | Thiết kế | Người dùng đã chọn **A hai cột**; [PR #18](https://github.com/nguyenhuy158/task-hub/pull/18), [CI main](https://github.com/nguyenhuy158/task-hub/actions/runs/39719247917). #3 còn mở cho xác nhận sử dụng luồng chính |
 | Auth web #6 | Backend squash merge PR #21 (`ab442d5`), CI đạt; UI thu hồi trên branch frontend; còn login/deploy thật |
-| Frontend #4 | React/Vite/Tailwind nối API trên `feat/4-web-ui`; desktop/mobile và SQLite giả đã kiểm chứng; chưa publish/CI frontend |
+| Frontend #4 | React/Vite/Tailwind nối API qua PR #22; desktop/mobile và SQLite giả đã kiểm chứng; CI main đạt |
 | Client thực tế #5 | SDK protocol đã test; chưa chứng minh Claude Code/Codex bàn giao thực tế trên hai môi trường |
 | Backup/deploy/tích hợp #7–#12 | Chưa triển khai. Không dùng dữ liệu thật hoặc suy ra đã có production |
 
@@ -26,11 +26,11 @@ Người dùng đã duyệt backend auth qua SSO hiện có, một email allowli
 
 ## Bước tiếp theo cụ thể
 
-Bằng chứng frontend local: `pnpm check`, `pnpm test` (10 tests), `pnpm openapi:check` (18 operations), `pnpm api:types`, `pnpm build` đều đạt. `pnpm run setup` chạy lại trên fixture có sẵn. Backend auth đã có [CI đúng head PR #21](https://github.com/nguyenhuy158/task-hub/actions/runs/39800138760). Chưa có bằng chứng Google login thật hoặc CI frontend chưa publish. Email chủ ở `.env.sso.local` đã ignore, không đưa vào handoff public.
+Bằng chứng frontend local: `pnpm check`, `pnpm test` (10 tests), `pnpm openapi:check` (18 operations), `pnpm api:types`, `pnpm build` đều đạt. `pnpm run setup` chạy lại trên fixture có sẵn. [CI main sau PR #22](https://github.com/nguyenhuy158/task-hub/actions/runs/39809530446) đạt. Chưa có bằng chứng Google login thật. Email chủ ở `.env.sso.local` đã ignore, không đưa vào handoff public.
 
 - #6: backend đã merge PR #21; UI thu hồi đã kiểm chứng local. Deploy/login thật cần duyệt riêng. Không đóng issue chỉ từ API tests.
 - #3: bố cục A đã chọn; chưa có bằng chứng người dùng tự hoàn thành luồng không cần giải thích. Không tự đóng chỉ từ lựa chọn A.
-- #4: frontend đã có trên branch local; xem [bằng chứng](design/frontend/README.md). Còn publish theo quyền người dùng và CI đúng head.
+- #4: frontend đã merge qua PR #22; xem [bằng chứng](design/frontend/README.md). CI main đúng commit đã đạt.
 - Không khởi chạy tất cả các pha cùng lúc; làm theo phụ thuộc trong issues.
 
 ## Dựng môi trường trên máy mới

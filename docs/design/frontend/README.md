@@ -1,6 +1,6 @@
 # Bằng chứng frontend local
 
-Branch `feat/4-web-ui`, dữ liệu hoàn toàn giả. Browser chạy build thật với `tests/browser-fixture.ts`; cookie qua verifier SSO nhưng khóa/chủ đều giả. Chưa có Google login thật, deploy hoặc CI frontend.
+PR #22 đã merge, dữ liệu kiểm chứng hoàn toàn giả. Browser chạy build thật với `tests/browser-fixture.ts`; cookie qua verifier SSO nhưng khóa/chủ đều giả. [CI main](https://github.com/nguyenhuy158/task-hub/actions/runs/39809530446) đạt. Chưa có Google login thật hoặc deploy.
 
 | Luồng | UI và SQLite đã đối chiếu |
 |---|---|
@@ -21,4 +21,4 @@ Branch `feat/4-web-ui`, dữ liệu hoàn toàn giả. Browser chạy build th�
 - [Conflict thu hồi](owner-conflict-mobile.png)
 - [Tạo task](created-desktop.png)
 
-Gate local: `pnpm check`, `pnpm test`, `pnpm openapi:check`, `pnpm api:types`, `pnpm build`. Chưa thay cho CI đúng commit, người dùng tự thử (#3), hai AI clients thật (#5) hoặc auth trên domain thật (#6).
+Gate local và CI: `pnpm check`, `pnpm test`, `pnpm openapi:check`, `pnpm api:types`, `pnpm build`. Người dùng tự thử (#3), hai AI clients thật (#5) và auth trên domain thật (#6) cần bằng chứng riêng.
