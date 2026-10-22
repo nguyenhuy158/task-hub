@@ -4,9 +4,9 @@ App cá nhân để quản lý task, checklist và bàn giao context giữa AI c
 
 ## Đang ở đâu?
 
-**Phase 1 — MVP local đang làm.** Backend REST/MCP và OpenAPI đã có. Frontend chưa triển khai; prototype B bị phản hồi khó sử dụng và cần thiết kế lại. Chưa dùng dữ liệu thật hoặc deploy VM.
+**Phase 1 — MVP local đang làm.** Backend REST/MCP và OpenAPI đã có. Frontend chưa triển khai; người dùng đã chọn [bố cục A hai cột](docs/design/README.md), còn kiểm chứng luồng sử dụng. Chưa dùng dữ liệu thật hoặc deploy VM.
 
-**Việc tiếp theo:** [#3 — thiết kế lại UI](https://github.com/nguyenhuy158/task-hub/issues/3), cùng [#6 — auth web/origin](https://github.com/nguyenhuy158/task-hub/issues/6) để gỡ phụ thuộc cho frontend.
+**Việc tiếp theo:** [#3 — xác nhận luồng UI](https://github.com/nguyenhuy158/task-hub/issues/3), cùng [#6 — auth web/origin](https://github.com/nguyenhuy158/task-hub/issues/6) để gỡ phụ thuộc cho frontend.
 
 **[MVP tổng: cần những gì?](https://github.com/nguyenhuy158/task-hub/issues/13)** · [Issues](https://github.com/nguyenhuy158/task-hub/issues) · [Milestones](https://github.com/nguyenhuy158/task-hub/milestones)
 
