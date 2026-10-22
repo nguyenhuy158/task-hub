@@ -2,6 +2,8 @@
 
 App cá nhân để quản lý task, checklist và bàn giao context giữa AI clients trên nhiều máy. Code nằm ở Git/PR; Task Hub giữ tiến độ và bước tiếp theo.
 
+**AI mới tiếp quản:** đọc [docs/handoff.md](docs/handoff.md) trước.
+
 ## Đang ở đâu?
 
 **Phase 1 — MVP local đang làm.** Backend REST/MCP và OpenAPI đã có. Frontend chưa triển khai; người dùng đã chọn [bố cục A hai cột](docs/design/README.md), còn kiểm chứng luồng sử dụng. Chưa dùng dữ liệu thật hoặc deploy VM.
@@ -30,6 +32,7 @@ Issues giữ trạng thái và bằng chứng; Milestones tính tiến độ t�
 
 | Nội dung | Nơi quản lý |
 |---|---|
+| Bàn giao, trạng thái và bước tiếp theo | [AI handoff](docs/handoff.md) |
 | Phạm vi, workflow và yêu cầu | [Product](docs/product.md) |
 | Roadmap và cách cập nhật tiến độ | [Roadmap](docs/roadmap.md) |
 | Wireframe, screenshots, prototype, Stitch | [Design](docs/design/README.md) |
