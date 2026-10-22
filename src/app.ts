@@ -5,6 +5,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { ApiError, Store, type Principal } from './store.js';
 import { routes } from './contracts.js';
 import type { WebAuth } from './auth.js';
+import { serveStatic } from '@hono/node-server/serve-static';
 
 export function createApp(store:Store,webAuth?:WebAuth) {
   const app=new Hono<{Variables:{principal:Principal;webUser:Awaited<ReturnType<WebAuth['authenticate']>>}}>();
@@ -82,5 +83,7 @@ export function createApp(store:Store,webAuth?:WebAuth) {
     return c.json({error:{code:'INTERNAL_ERROR'}},500);
   });
   app.notFound(c=>c.json({error:{code:'NOT_FOUND'}},404));
+  app.get('/assets/*',serveStatic({root:'./dist/web'}));
+  app.get('/',serveStatic({path:'./dist/web/index.html'}));
   return app;
 }

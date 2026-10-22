@@ -7,6 +7,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY tsconfig.json ./
 COPY src ./src
+COPY scripts ./scripts
+COPY web ./web
+COPY openapi.yaml vite.config.ts ./
 RUN pnpm build
 
 FROM base AS runtime

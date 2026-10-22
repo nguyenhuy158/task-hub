@@ -17,20 +17,20 @@ GitHub Issues/Milestones giữ tiến độ trực tiếp. Tài liệu này là 
 | API, MCP, SQLite, OpenAPI | Đã có, #1/#2 đóng; commit `9d63140`; tests dùng SQLite thật và MCP stdio |
 | CI, bootstrap, quy trình dev | #14–#16 đóng qua [PR #17](https://github.com/nguyenhuy158/task-hub/pull/17); [CI main](https://github.com/nguyenhuy158/task-hub/actions/runs/39713505366) |
 | Thiết kế | Người dùng đã chọn **A hai cột**; [PR #18](https://github.com/nguyenhuy158/task-hub/pull/18), [CI main](https://github.com/nguyenhuy158/task-hub/actions/runs/39719247917). #3 còn mở cho xác nhận sử dụng luồng chính |
-| Auth web #6 | Backend SSO đã được duyệt và triển khai local trên branch `feat/6-sso-auth`; còn UI xác nhận thu hồi, CI/publish và đăng nhập thật |
-| Frontend #4 | Chưa có React app; wireframe là HTML tĩnh với điều hướng trạng thái mẫu, không có lưu thật |
+| Auth web #6 | Backend squash merge PR #21 (`ab442d5`), CI đạt; UI thu hồi trên branch frontend; còn login/deploy thật |
+| Frontend #4 | React/Vite/Tailwind nối API trên `feat/4-web-ui`; desktop/mobile và SQLite giả đã kiểm chứng; chưa publish/CI frontend |
 | Client thực tế #5 | SDK protocol đã test; chưa chứng minh Claude Code/Codex bàn giao thực tế trên hai môi trường |
 | Backup/deploy/tích hợp #7–#12 | Chưa triển khai. Không dùng dữ liệu thật hoặc suy ra đã có production |
 
-Người dùng đã duyệt backend auth qua SSO hiện có, một email allowlist riêng và domain `task.huyab.click`. Chưa duyệt deploy/DNS hoặc giao diện auth mới.
+Người dùng đã duyệt backend auth qua SSO hiện có, một email allowlist riêng và domain `task.huyab.click`, cùng frontend theo A và UI thu hồi. Chưa duyệt deploy/DNS.
 
 ## Bước tiếp theo cụ thể
 
-Bằng chứng backend auth local: `pnpm check`, `pnpm test` (8 tests), `pnpm openapi:check` (18 operations), `pnpm api:types`, `pnpm build` đều đạt. `pnpm run setup` chạy lại trên fixture có sẵn; runtime dev kiểm tra health 200, login redirect 302 đúng SSO/return URL và me 401 khi không có cookie. Không có bằng chứng đăng nhập Google thật hoặc CI cho thay đổi chưa publish. Email chủ ở `.env.sso.local` đã ignore, không đưa vào handoff public.
+Bằng chứng frontend local: `pnpm check`, `pnpm test` (10 tests), `pnpm openapi:check` (18 operations), `pnpm api:types`, `pnpm build` đều đạt. `pnpm run setup` chạy lại trên fixture có sẵn. Backend auth đã có [CI đúng head PR #21](https://github.com/nguyenhuy158/task-hub/actions/runs/39800138760). Chưa có bằng chứng Google login thật hoặc CI frontend chưa publish. Email chủ ở `.env.sso.local` đã ignore, không đưa vào handoff public.
 
-- #6: hoàn tất kiểm chứng backend local theo tài liệu auth; UI thu hồi và deploy/login thật cần kế hoạch riêng. Không đóng issue chỉ từ API tests.
+- #6: backend đã merge PR #21; UI thu hồi đã kiểm chứng local. Deploy/login thật cần duyệt riêng. Không đóng issue chỉ từ API tests.
 - #3: bố cục A đã chọn; chưa có bằng chứng người dùng tự hoàn thành luồng không cần giải thích. Không tự đóng chỉ từ lựa chọn A.
-- #4: khi có thiết kế và auth phù hợp, lên kế hoạch React/Vite/Tailwind theo A, sinh types từ OpenAPI. Không lấy prototype B làm đặc tả.
+- #4: frontend đã có trên branch local; xem [bằng chứng](design/frontend/README.md). Còn publish theo quyền người dùng và CI đúng head.
 - Không khởi chạy tất cả các pha cùng lúc; làm theo phụ thuộc trong issues.
 
 ## Dựng môi trường trên máy mới
