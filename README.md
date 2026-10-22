@@ -6,7 +6,7 @@ App cá nhân để quản lý task, checklist và bàn giao context giữa AI c
 
 ## Đang ở đâu?
 
-**Phase 1 — MVP local đang làm.** Backend REST/MCP và OpenAPI đã có. Frontend chưa triển khai; người dùng đã chọn [bố cục A hai cột](docs/design/README.md), còn kiểm chứng luồng sử dụng. Chưa dùng dữ liệu thật hoặc deploy VM.
+**Phase 1 — MVP local đang làm.** Backend REST/MCP và OpenAPI đã có. Frontend React nối API trên branch `feat/4-web-ui` theo [bố cục A hai cột](docs/design/README.md), đã kiểm chứng bằng dữ liệu giả. Chưa publish frontend, dùng dữ liệu thật hoặc deploy VM.
 
 **Việc tiếp theo:** [#3 — xác nhận luồng UI](https://github.com/nguyenhuy158/task-hub/issues/3), cùng [#6 — auth web/origin](https://github.com/nguyenhuy158/task-hub/issues/6) để gỡ phụ thuộc cho frontend.
 
@@ -41,7 +41,7 @@ Issues giữ trạng thái và bằng chứng; Milestones tính tiến độ t�
 
 ## Phát triển và chạy thử
 
-Node/Hono + SQLite; pnpm; Docker Compose. Frontend dự kiến React/Vite/Tailwind. Hướng dẫn [chạy local, Docker, MCP và admin](docs/development.md).
+Node/Hono + SQLite; pnpm; Docker Compose. Frontend dùng React/Vite/Tailwind. Hướng dẫn [chạy local, Docker, MCP và admin](docs/development.md).
 
 ```sh
 rtk proxy pnpm run setup

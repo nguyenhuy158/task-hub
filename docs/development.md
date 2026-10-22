@@ -1,6 +1,10 @@
 # Task Hub API MVP
 
-Node.js + Hono + SQLite. REST API và 13 MCP tools dùng chung validation, quyền và transaction. Chỉ dùng dữ liệu giả ở giai đoạn này. Backend đã có tích hợp SSO tùy chọn; chưa có UI, bằng chứng SSO trên domain thật, Plane, Hindsight, Telegram hoặc backup ngoài host.
+Node.js + Hono + SQLite. REST API và 13 MCP tools dùng chung validation, quyền và transaction. Chỉ dùng dữ liệu giả ở giai đoạn này. Backend có SSO tùy chọn và frontend React; chưa có bằng chứng SSO trên domain thật, Plane, Hindsight, Telegram hoặc backup ngoài host.
+
+`pnpm dev` build frontend rồi phục vụ web/API cùng origin. Sau khi sửa frontend, chạy lại `pnpm build:web` và reload. Nháp bàn giao lưu localStorage theo chủ/task; mutation chưa rõ kết quả giữ nguyên payload và operation_id để retry. Conflict cần tải bản mới và xác nhận đối chiếu, không tự ghi đè.
+
+Kiểm chứng browser giả: `pnpm build:web`, rồi `node --import tsx tests/browser-fixture.ts`; mở `http://127.0.0.1:4194/__fixture/login`. Fixture dùng DB tạm và RSA/JWKS giả; route login này không tồn tại trong app hoặc Docker image. Xem [bằng chứng UI](design/frontend/README.md). Đây không thay cho Google login trên domain HTTPS thật.
 
 ## Chạy local
 
