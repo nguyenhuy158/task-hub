@@ -6,7 +6,7 @@ import { schemas, reads, closeSchema, archiveSchema, type Command } from './cont
 import { z } from 'zod';
 
 type Row = Record<string, string | number | null>;
-export type Principal = { id: string; scope: string; read_private: number };
+export type Principal = { id: string; scope: string; read_private: number; kind?: 'owner' };
 type Task = Row & { id:string; project_id:string; version:number; generation:number; owner_session_id:string|null; status:string; scope:string; completion_rule:string };
 export class ApiError extends Error {
   constructor(public status:number, public code:string) { super(code); }
@@ -27,8 +27,9 @@ export class Store {
     this.db.exec('PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=2000;');
     this.transaction(()=>{
       const version=Number(this.one('PRAGMA user_version')?.user_version);
-      if(version>1) throw new Error('Database schema newer than server');
+      if(version>2) throw new Error('Database schema newer than server');
       if(version===0) { this.db.exec(readFileSync(new URL('../migrations/001.sql',import.meta.url),'utf8')); this.db.exec('PRAGMA user_version=1'); }
+      if(version<2) { this.db.exec(readFileSync(new URL('../migrations/002.sql',import.meta.url),'utf8')); this.db.exec('PRAGMA user_version=2'); }
     });
   }
   one(sql:string,...args:SQLInputValue[]):Row|undefined { return this.db.prepare(sql).get(...args) as Row|undefined; }
@@ -52,6 +53,21 @@ export class Store {
     return p as Principal;
   }
   active(p:Principal) { if(!this.one('SELECT id FROM clients WHERE id=? AND revoked_at IS NULL',p.id)) fail(401,'UNAUTHENTICATED'); }
+  webPrincipal(issuer:string,subject:string):Principal {
+    return this.transaction(()=>{
+      let owner=this.one('SELECT * FROM web_owner WHERE id=1');
+      if(!owner) {
+        const id=randomUUID();
+        this.run("INSERT INTO clients(id,label,token_hash,scope,read_private) VALUES(?,?,?,'all',1)",id,'Web owner','sso:'+id);
+        this.run('INSERT INTO web_owner VALUES(1,?,?,?)',issuer,subject,id);
+        owner=this.one('SELECT * FROM web_owner WHERE id=1')!;
+      }
+      if(owner.issuer!==issuer||owner.subject!==subject) return fail(403,'FORBIDDEN');
+      const principal:Principal={id:String(owner.client_id),scope:'all',read_private:1,kind:'owner'};
+      this.active(principal);
+      return principal;
+    });
+  }
   project(p:Principal,id:string) {
     const row=this.one('SELECT * FROM projects WHERE id=?',id);
     if(!row || (p.scope!=='all'&&p.scope!==row.scope)) return fail(404,'NOT_FOUND');
@@ -190,9 +206,13 @@ export class Store {
     this.run('UPDATE tasks SET version=?,owner_session_id=?,generation=?,updated_at=? WHERE id=?',version,a.end_session?null:t.owner_session_id,t.generation+(a.end_session?1:0),now(),id);
     return {task_id:id,checkpoint_id:cp,version,generation:t.generation+(a.end_session?1:0),owner_session_id:a.end_session?null:t.owner_session_id,status:t.status};
   }
-  closeOwner(input:unknown) {
+  closeOwner(input:unknown,principal?:Principal) {
     const a=closeSchema.parse(input);
-    return this.mutate('local-owner',a.operation_id,'close_owner',a,()=>{
+    if(principal) {
+      if(principal.kind!=='owner') return fail(403,'FORBIDDEN');
+      this.active(principal);
+    }
+    return this.mutate(principal?.id??'local-owner',a.operation_id,'close_owner',a,()=>{
       const t=this.task({id:'local-owner',scope:'all',read_private:1},a.task_id); this.version(t,a.base_version);
       if(t.owner_session_id!==a.expected_owner_session_id||t.generation!==a.expected_generation) fail(409,'OWNER_CHANGED');
       this.run('UPDATE tasks SET owner_session_id=NULL,generation=generation+1,version=version+1,updated_at=? WHERE id=?',now(),t.id);

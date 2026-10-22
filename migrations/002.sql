@@ -1,0 +1,4 @@
+CREATE TABLE web_owner (
+ id INTEGER PRIMARY KEY CHECK(id=1), issuer TEXT NOT NULL, subject TEXT NOT NULL,
+ client_id TEXT NOT NULL UNIQUE REFERENCES clients(id)
+) STRICT;

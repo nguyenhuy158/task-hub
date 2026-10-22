@@ -1,6 +1,6 @@
 # Task Hub API MVP
 
-Node.js + Hono + SQLite. REST API và 13 MCP tools dùng chung validation, quyền và transaction. Chỉ dùng dữ liệu giả ở giai đoạn này; chưa nối UI, SSO, Plane, Hindsight, Telegram hoặc backup ngoài host.
+Node.js + Hono + SQLite. REST API và 13 MCP tools dùng chung validation, quyền và transaction. Chỉ dùng dữ liệu giả ở giai đoạn này. Backend đã có tích hợp SSO tùy chọn; chưa có UI, bằng chứng SSO trên domain thật, Plane, Hindsight, Telegram hoặc backup ngoài host.
 
 ## Chạy local
 
@@ -33,7 +33,7 @@ rtk proxy pnpm start
 
 Chạy từ thư mục task-hub. API mặc định http://127.0.0.1:4180. Token được ghi file mode 0600, không in ra terminal; SQLite chỉ lưu hash. Không ghi đè file token đã tồn tại. Muốn client truy cập cả work/personal dùng scope `all`; chỉ cấp `--private` khi cần đọc/ghi ghi chú riêng. Không gửi token trong URL.
 
-Config: `TASK_HUB_DB` mặc định `data/task-hub.sqlite`, `HOST` mặc định `127.0.0.1`, `PORT` mặc định `4180`. Bản API này từ chối Origin của browser; kết nối UI/SSO sẽ cần auth và CSRF riêng.
+Config: `TASK_HUB_DB` mặc định `data/task-hub.sqlite`, `HOST` mặc định `127.0.0.1`, `PORT` mặc định `4180`. Bearer AI vẫn từ chối Origin. Web auth dùng cookie SSO, chỉ chấp nhận Origin `https://task.huyab.click`; xem phần SSO bên dưới.
 
 ## Docker Compose
 
@@ -79,15 +79,15 @@ rtk proxy pnpm openapi:check
 rtk proxy pnpm api:types
 ```
 
-`openapi:check` validate OpenAPI, so routes/request schema với Zod, kiểm tra examples và response thực tế của cả 14 operations bằng DB giả. Sai field, nullability, status hoặc route làm kiểm tra thất bại. Quy tắc nghiệp vụ như ownership và version vẫn do integration tests kiểm chứng.
+`openapi:check` validate OpenAPI, so routes/request schema với Zod, kiểm tra examples và response thực tế của cả 18 operations bằng DB giả. Sai field, nullability, status hoặc route làm kiểm tra thất bại. Quy tắc nghiệp vụ như ownership và version vẫn do integration tests kiểm chứng.
 
 `api:types` sinh `generated/api.d.ts` (không commit). FE có thể import `paths`, `components`, `operations`; ví dụ `components['schemas']['Task']`. TypeScript tooling pin 5.9 để tương thích generator. Chạy `pnpm test` cũng bao gồm contract test.
 
-Import file YAML vào Swagger Editor hoặc Postman bằng Import → File; chọn server local và cấu hình Bearer token riêng trong client. Không upload spec kèm credential. Swagger trong browser xem được tài liệu nhưng “Try it out” hiện bị chặn bởi chính sách Origin của API. Nối FE trực tiếp cần bổ sung auth/origin; file hợp đồng không tự bật CORS.
+Import file YAML vào Swagger Editor hoặc Postman bằng Import → File; chọn server local và cấu hình Bearer token riêng trong client. Không upload spec kèm credential. Swagger ở origin khác chỉ xem được tài liệu; “Try it out” không được cấp CORS. FE dùng cookie SSO từ đúng origin ứng dụng.
 
-Wire format hiện tại cần lưu ý: `TaskSummary` trong danh sách không có checklist; `Task` chi tiết có checklist/scope/completion_rule. `completion_evidence` là chuỗi JSON hoặc null. `checkpoint` có thể null; `private_note` bị bỏ khỏi response mặc định. Tất cả mutation thành công hiện trả 200, kể cả tạo mới. Không có HTTP endpoint cưỡng chế đóng phiên/archive; đó là lệnh admin local.
+Wire format hiện tại cần lưu ý: `TaskSummary` trong danh sách không có checklist; `Task` chi tiết có checklist/scope/completion_rule. `completion_evidence` là chuỗi JSON hoặc null. `checkpoint` có thể null; `private_note` bị bỏ khỏi response mặc định. Tất cả mutation thành công hiện trả 200, kể cả tạo mới. Chủ web có endpoint close-owner; archive vẫn chỉ có trong CLI admin local.
 
-Mọi endpoint trừ `/health` cần `Authorization: Bearer <token>`. Body JSON tối đa 64 KiB. Mutation cần UUID `operation_id`; retry giữ nguyên ID và payload. ID route phải là UUID, tìm mã như LAB-1 qua `GET /api/v1/tasks?query=LAB-1`.
+Task API nhận `Authorization: Bearer <token>` cho AI hoặc cookie SSO cho chủ web. `/health` và `/api/v1/auth/login` không yêu cầu đăng nhập. Body JSON tối đa 64 KiB. Mutation cần UUID `operation_id`; retry giữ nguyên ID và payload. ID route phải là UUID, tìm mã như LAB-1 qua `GET /api/v1/tasks?query=LAB-1`.
 
 | REST dưới /api/v1 | MCP |
 |---|---|
@@ -113,7 +113,7 @@ Status: todo/in_progress/blocked/done. Claim chỉ chuyển todo → in_progress
 
 ## Quản trị local
 
-API/MCP không có quyền cưỡng chế thu hồi owner hoặc archive. Trước khi có UI đăng nhập, hai thao tác này chỉ có trong CLI của người quản trị máy.
+MCP/token AI không có quyền cưỡng chế thu hồi owner hoặc archive. Chủ web đã xác thực có thể gọi close-owner; archive chỉ có trong CLI của người quản trị máy.
 
 ```sh
 rtk proxy pnpm admin list-clients
@@ -128,14 +128,24 @@ close-owner JSON: `{operation_id,task_id,base_version,expected_owner_session_id,
 
 Lỗi có dạng `{error:{code,fields?}}`: 400 INVALID_INPUT/INVALID_CHECKLIST, 401 UNAUTHENTICATED, 403 FORBIDDEN, 404 NOT_FOUND, 409 VERSION_CONFLICT/OWNER_CHANGED/TASK_OWNED/OPERATION_REUSED, 503 RETRY_LATER. 409: giữ draft, đọc lại task; không tự thay generation rồi ghi đè. Timeout sau mutation: kết quả chưa rõ, retry nguyên operation_id. Retry có thể trả kết quả thành công lịch sử; đọc task lại trước thao tác mới.
 
-Migration 001 chạy trong transaction khi mở DB; user_version mới hơn code bị từ chối. Foreign keys, WAL, synchronous FULL; checkpoint/private note bất biến. Transaction ghi ngắn, một writer SQLite; chưa benchmark latency/tải lớn. Restart giữ dữ liệu, không thay thế backup.
+Migration 001–002 chạy trong transaction khi mở DB; user_version mới hơn code bị từ chối. Foreign keys, WAL, synchronous FULL; checkpoint/private note bất biến. Transaction ghi ngắn, một writer SQLite; chưa benchmark latency/tải lớn. Restart giữ dữ liệu, không thay thế backup.
 
 `pnpm test` chạy SQLite thật trong thư mục tạm: auth/scope/private, rollback checklist lỗi, retry/idempotency, checkpoint+release, reopen DB, MCP stdio qua HTTP, token revoke và hai server process tranh cùng task. Không gọi dịch vụ ngoài hoặc dữ liệu thật.
 
-Backup/restore mã hóa R2 + Drive, SSO, tích hợp và offline queue còn là gate trước dùng dữ liệu thật. Source app được quản lý riêng trong repo task-hub. Cấu hình triển khai cụ thể thuộc infra-selfhost; chuẩn bị VM thuộc infra-vm-setup.
+Backup/restore mã hóa R2 + Drive và bằng chứng đăng nhập/deploy vẫn còn trước khi dùng dữ liệu thật; tích hợp và offline queue thuộc các pha sau. Source app được quản lý riêng trong repo task-hub. Cấu hình triển khai cụ thể thuộc infra-selfhost; chuẩn bị VM thuộc infra-vm-setup.
 
 ## Quy trình đóng góp và CI
 
 Theo [AGENTS.md](../AGENTS.md): chọn issue, duyệt kế hoạch, làm trên branch và mở PR theo template. Chạy `pnpm check`, `pnpm test`, `pnpm openapi:check`, `pnpm api:types`, `pnpm build` trước push. CI chạy các gate này trên PR/main, rồi bootstrap hai lần trên runner mới để kiểm tra khả năng chạy lại. Test bootstrap kiểm tra dữ liệu/token giữ nguyên và từ chối DB lạ.
 
 Đính kèm bằng chứng vào issue và cập nhật tracker MVP #13 sau khi CI đúng commit thành công. Merge chưa có nghĩa đã deploy. UI cần bằng chứng desktop/mobile khi bắt đầu phần frontend.
+
+## SSO web
+
+Thiết kế và giới hạn: [Auth web](architecture/auth-web-proposal.md). Đặt `TASK_HUB_SSO_ALLOWED_EMAIL` trong cấu hình riêng của server; không commit email thật. `pnpm dev` đọc thêm `.env.sso.local` nếu có; file này phải giữ quyền 0600 và được Git ignore. Cấu hình mẫu dùng `owner@example.com`. Nếu thiếu biến, web auth tắt; nếu có nhưng rỗng/sai định dạng, server từ chối khởi động. Không thay token AI hoặc reset dữ liệu khi bật SSO.
+
+`GET /api/v1/auth/login` chuyển tới Google qua SSO. Sau khi quay về app, FE gọi `GET /api/v1/auth/me` lấy chủ và `csrf_token`; mọi mutation cookie cần `Origin: https://task.huyab.click` và `X-CSRF-Token`. `POST /api/v1/auth/logout` trả `redirect_url`: trình duyệt phải đi tới đó để đăng xuất toàn SSO. Backend không lưu JWT trong DB hay trả JWT cho JavaScript.
+
+Email allowlist được kiểm tra trên mỗi request; lần đăng nhập đầu ghim issuer/sub. `POST /api/v1/tasks/{task_id}/close-owner` chỉ nhận chủ web, payload giống CLI nhưng task_id ở path. UI phải xác nhận đúng task/version/owner/generation; conflict giữ nguyên draft và yêu cầu người dùng xem lại.
+
+SSO yêu cầu HTTPS đúng domain; không có login giả trong dev server. `pnpm test` tự dùng RSA/JWKS giả, không cần credential thật hoặc kết nối SSO. Để kiểm tra browser thật phải có bước triển khai HTTPS được duyệt riêng.
