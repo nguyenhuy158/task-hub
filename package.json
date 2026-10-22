@@ -7,7 +7,7 @@
     "node": ">=24.13.0"
   },
   "scripts": {
-    "dev": "tsx src/server.ts",
+    "dev": "node --env-file-if-exists=.env.development.local --import tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "tsx --test tests/*.test.ts",
@@ -15,7 +15,8 @@
     "admin": "tsx src/admin.ts",
     "mcp": "tsx src/mcp.ts",
     "openapi:check": "tsx scripts/check-openapi.ts && tsx --test tests/openapi.test.ts",
-    "api:types": "openapi-typescript openapi.yaml -o generated/api.d.ts"
+    "api:types": "openapi-typescript openapi.yaml -o generated/api.d.ts",
+    "setup": "node scripts/setup.mjs"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",

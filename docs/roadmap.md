@@ -25,6 +25,8 @@ Không sync các issue quản lý sản phẩm Task Hub sang Plane. Chức năng
 
 ## Issue tổng và ưu tiên
 
+Setup dev P0: [#14 CI](https://github.com/nguyenhuy158/task-hub/issues/14), [#15 bootstrap](https://github.com/nguyenhuy158/task-hub/issues/15), [#16 quy trình dev](https://github.com/nguyenhuy158/task-hub/issues/16). Trạng thái và bằng chứng nằm trong từng issue.
+
 [MVP tổng](https://github.com/nguyenhuy158/task-hub/issues/13) liệt kê nhóm bắt buộc và điều kiện dùng dữ liệu thật. P0 = MVP local; P1 = dùng dữ liệu thật; P2 = mở rộng. Auth web ở Phase 1 vì frontend cần cơ chế gọi API; Phase 2 giữ backup và triển khai.
 
 - [P0 · #1 · MVP API: task, owner, checklist và checkpoint](https://github.com/nguyenhuy158/task-hub/issues/1)

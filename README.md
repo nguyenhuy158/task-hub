@@ -41,13 +41,12 @@ Issues giữ trạng thái và bằng chứng; Milestones tính tiến độ t�
 Node/Hono + SQLite; pnpm; Docker Compose. Frontend dự kiến React/Vite/Tailwind. Hướng dẫn [chạy local, Docker, MCP và admin](docs/development.md).
 
 ```sh
-rtk proxy pnpm install --frozen-lockfile
-rtk proxy pnpm check
-rtk proxy pnpm test
-rtk proxy pnpm openapi:check
-rtk proxy pnpm api:types
+rtk proxy pnpm run setup
+rtk proxy pnpm dev
 ```
 
 `rtk proxy` là wrapper CLI dùng trong workspace; có thể chạy trực tiếp phần lệnh phía sau khi máy không có rtk.
+
+Dev API: http://127.0.0.1:4181. Setup tạo dữ liệu giả và token riêng trong `data/dev`; chạy lại giữ dữ liệu/token hiện có. Dùng `pnpm run setup`, vì `pnpm setup` là lệnh riêng của pnpm. Quy trình đóng góp: [AGENTS.md](AGENTS.md), [PR template](.github/pull_request_template.md), [CI](https://github.com/nguyenhuy158/task-hub/actions/workflows/ci.yml).
 
 Source app nằm trong repo này. Cấu hình triển khai thuộc infra-selfhost; chuẩn bị VM thuộc infra-vm-setup. Repo public chỉ giữ code, thiết kế và dữ liệu giả; không chứa DB, token, inventory máy hoặc task công việc thật.
