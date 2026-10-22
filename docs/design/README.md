@@ -18,8 +18,6 @@ Chọn bố cục chưa thay thế bài kiểm tra người dùng tự thực hi
 
 ## Bản cũ để tham khảo
 
-## Tài sản thiết kế
-
 - [Prototype B](prototype-b.html): HTML có tương tác, dữ liệu giả trong bộ nhớ, reload sẽ reset. Tải file về và mở bằng browser; GitHub chỉ hiển thị source HTML.
 - [Stitch project](https://stitch.withgoogle.com/projects/14967084553524389024): bản thiết kế tham khảo, có thể cần quyền truy cập. Repo lưu prototype và ảnh để không phụ thuộc link này.
 - [Ảnh desktop](desktop.png) và [ảnh mobile](mobile.png): ảnh chụp demo cũ, không phải ứng dụng nối backend.

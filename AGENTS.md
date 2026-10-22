@@ -1,5 +1,7 @@
 # Task Hub development
 
+- Start with `docs/handoff.md`, then read the live GitHub issue. It records approved decisions, unapproved proposals, source locations and validation evidence; do not require the prior chat to resume.
+
 - Communicate briefly in Vietnamese. Ask about unclear product choices rather than guessing.
 - Inspect first, present a concrete plan, and obtain approval before changing code, tests, configuration or design. Once approved, complete that scope without asking again for routine steps.
 - Use pnpm 11.25.0. Node 26.7.0 is the verified local/CI/Docker runtime. Prefix shell calls with `rtk` where available; `rtk proxy` preserves raw behavior. Do not use sed.

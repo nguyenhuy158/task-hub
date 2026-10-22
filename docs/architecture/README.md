@@ -6,7 +6,7 @@
 
 | Thành phần | Quyết định | Hiện trạng |
 |---|---|---|
-| Frontend | React + Vite + Tailwind; Be Vietnam Pro + Lucide | Chưa triển khai; wireframe cần làm lại |
+| Frontend | React + Vite + Tailwind; Be Vietnam Pro + Lucide | Chưa triển khai; đã chọn bố cục A hai cột, còn xác nhận luồng sử dụng |
 | Backend | TypeScript + Hono trên Node.js | MVP local |
 | DB | SQLite; transaction ngắn; một writer | MVP local |
 | Package manager | pnpm; frozen lockfile | Đã dùng |
@@ -81,3 +81,10 @@ Plane chỉ là tập con công việc. Task cá nhân, ghi chú riêng và full
 | GitHub quản lý dự án | Issues là công việc; Milestones là phase; docs là thiết kế; commit/PR là bằng chứng |
 
 Giới hạn đã biết: completion_evidence response đang là chuỗi JSON; chưa tự xác minh release. Backup/RPO ≤15 phút là mục tiêu chưa đạt. Deploy thật cần auth web, restore diễn tập và đo tài nguyên/latency.
+
+## Tài liệu tiếp nối
+
+- [Auth web #6 — khảo sát và đề xuất chưa duyệt](auth-web-proposal.md)
+- [Thiết kế pha sau: sync, offline, host, backup/restore](deferred-design.md)
+- [Đối chiếu tài liệu gốc](../source-reconciliation.md)
+- [AI tiếp quản](../handoff.md)
