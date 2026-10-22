@@ -6,6 +6,21 @@ Node.js + Hono + SQLite. REST API và 13 MCP tools dùng chung validation, quy�
 
 Node 26.7.0 đã được kiểm tra; pnpm 11.25.0 được pin trong package.json.
 
+### Dev nhanh với dữ liệu giả
+
+```sh
+rtk proxy pnpm run setup
+rtk proxy pnpm dev
+```
+
+Setup cài dependencies theo lockfile, tạo `.env.development.local`, DB `data/dev/task-hub.sqlite`, một project/task/checkpoint giả và hai client. Token nằm ở `data/dev/client-a.token` và `data/dev/client-b.token`, quyền file 0600; không in giá trị. Client A được đọc private note; client B không được đọc. Cả hai chỉ có scope personal.
+
+API dev chạy ở http://127.0.0.1:4181, tách khỏi Docker cổng 4180. MCP dev dùng URL này và đường dẫn tuyệt đối tới một token dev. `pnpm dev` đọc config local; biến môi trường đã export có ưu tiên cao hơn file, nên bỏ các biến TASK_HUB_DB/HOST/PORT của môi trường khác trước khi chạy dev.
+
+Chạy setup lần nữa giữ dữ liệu, token và port đã cấu hình. Setup từ chối thư mục dev chưa đầy đủ, config trỏ DB khác hoặc lock đang tồn tại. Nếu bị dừng giữa chừng, kiểm tra tiến trình setup và `data/.setup-lock`/`data/.setup-*` trước khi phục hồi; không xóa DB hay token để chạy lại. `.env.example` chỉ chứa giá trị không bí mật. `pnpm setup` là lệnh tích hợp của pnpm; luôn dùng `pnpm run setup` cho dự án.
+
+### Cấu hình client thủ công
+
 ```sh
 rtk proxy pnpm install --frozen-lockfile
 rtk proxy pnpm check
@@ -118,3 +133,9 @@ Migration 001 chạy trong transaction khi mở DB; user_version mới hơn code
 `pnpm test` chạy SQLite thật trong thư mục tạm: auth/scope/private, rollback checklist lỗi, retry/idempotency, checkpoint+release, reopen DB, MCP stdio qua HTTP, token revoke và hai server process tranh cùng task. Không gọi dịch vụ ngoài hoặc dữ liệu thật.
 
 Backup/restore mã hóa R2 + Drive, SSO, tích hợp và offline queue còn là gate trước dùng dữ liệu thật. Source app được quản lý riêng trong repo task-hub. Cấu hình triển khai cụ thể thuộc infra-selfhost; chuẩn bị VM thuộc infra-vm-setup.
+
+## Quy trình đóng góp và CI
+
+Theo [AGENTS.md](../AGENTS.md): chọn issue, duyệt kế hoạch, làm trên branch và mở PR theo template. Chạy `pnpm check`, `pnpm test`, `pnpm openapi:check`, `pnpm api:types`, `pnpm build` trước push. CI chạy các gate này trên PR/main, rồi bootstrap hai lần trên runner mới để kiểm tra khả năng chạy lại. Test bootstrap kiểm tra dữ liệu/token giữ nguyên và từ chối DB lạ.
+
+Đính kèm bằng chứng vào issue và cập nhật tracker MVP #13 sau khi CI đúng commit thành công. Merge chưa có nghĩa đã deploy. UI cần bằng chứng desktop/mobile khi bắt đầu phần frontend.
