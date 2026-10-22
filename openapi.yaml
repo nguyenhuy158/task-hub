@@ -1,0 +1,1808 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Task Hub API
+  version: 0.1.0
+  description: "FE/BE contract for the local MVP. Change this contract and BE together; pnpm openapi:check rejects
+    request/route drift and validates actual response fixtures. Bearer tokens are opaque, not JWT. Browser requests
+    carrying Origin are currently rejected; FE integration needs a separately approved authentication/origin change or a
+    trusted server-side proxy. Do not embed personal client tokens in a shipped frontend. All mutations need
+    operation_id; retry an uncertain result with the identical ID and payload. Conflicts require a fresh read and
+    explicit resolution. Strings declared as nonempty text are trimmed before length validation; send normalized text.
+    IDs and timestamps are server generated; times are UTC. Maximum JSON request body: 65536 bytes. Responses use
+    Cache-Control: no-store. No force-close/archive HTTP routes exist."
+servers:
+  - url: http://127.0.0.1:4180
+    description: Local Docker or Node API
+security:
+  - bearerAuth: []
+tags:
+  - name: Projects
+  - name: Sessions
+  - name: Tasks
+  - name: Health
+paths:
+  /health:
+    get:
+      operationId: health
+      summary: Liveness
+      tags:
+        - Health
+      security: []
+      responses:
+        "200":
+          description: Process responds. Not a readiness or backup guarantee.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+              example:
+                ok: true
+  /api/v1/projects:
+    get:
+      operationId: list_projects
+      summary: list projects
+      description: List visible, non-archived projects. Ordered by UUID ascending; cursor is the last ID, not a date.
+      tags:
+        - Projects
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectPage"
+              example:
+                items:
+                  - id: 22222222-2222-4222-8222-222222222222
+                    code: LAB
+                    name: Homelab
+                    scope: personal
+                    completion_rule: evidence
+                    version: 1
+                    archived_at: null
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+    post:
+      operationId: create_project
+      summary: create project
+      description: "Create a project in the token scope. Default completion_rule: evidence for personal, production_release
+        for work. Project code is unique and immutable."
+      tags:
+        - Projects
+      parameters: []
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+              example:
+                id: 22222222-2222-4222-8222-222222222222
+                code: LAB
+                name: Homelab
+                scope: personal
+                completion_rule: evidence
+                version: 1
+                archived_at: null
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              code: LAB
+              name: Homelab
+              scope: personal
+  /api/v1/projects/{project_id}:
+    patch:
+      operationId: update_project
+      summary: update project
+      description: Update project name or completion rule at base_version. Scope cannot change. A request without changed
+        fields still increments version.
+      tags:
+        - Projects
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+              example:
+                id: 22222222-2222-4222-8222-222222222222
+                code: LAB
+                name: My homelab
+                scope: personal
+                completion_rule: evidence
+                version: 2
+                archived_at: null
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProjectRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              base_version: 1
+              name: My homelab
+  /api/v1/sessions:
+    post:
+      operationId: open_session
+      summary: open session
+      description: Create a session bound to the authenticated client. A client cannot use another client session.
+      tags:
+        - Sessions
+      parameters: []
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+              example:
+                id: 44444444-4444-4444-8444-444444444444
+                label: Codex on Mac
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpenSessionRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              label: Codex on Mac
+  /api/v1/tasks:
+    get:
+      operationId: list_tasks
+      summary: list tasks
+      description: List non-archived tasks in token scope. query searches title and code case-insensitively. Ordered by UUID
+        ascending. Results omit checklist, scope and completion_rule; fetch a task for those fields.
+      tags:
+        - Tasks
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: project_id
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: scope
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - personal
+              - work
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - todo
+              - in_progress
+              - blocked
+              - done
+        - name: query
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 120
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskPage"
+              example:
+                items:
+                  - id: 33333333-3333-4333-8333-333333333333
+                    code: LAB-1
+                    project_id: 22222222-2222-4222-8222-222222222222
+                    title: Restore backup
+                    status: in_progress
+                    completion_evidence: null
+                    version: 2
+                    owner_session_id: 44444444-4444-4444-8444-444444444444
+                    generation: 2
+                    created_at: 2026-10-22T00:00:00.000Z
+                    updated_at: 2026-10-22T00:00:00.000Z
+                    archived_at: null
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+    post:
+      operationId: create_task
+      summary: create task
+      description: Create task and initial checklist atomically. No synthetic checkpoint is created. Code is generated from
+        the project code.
+      tags:
+        - Tasks
+      parameters: []
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: 33333333-3333-4333-8333-333333333333
+                code: LAB-1
+                project_id: 22222222-2222-4222-8222-222222222222
+                title: Restore backup
+                status: todo
+                completion_evidence: null
+                version: 1
+                owner_session_id: null
+                generation: 1
+                created_at: 2026-10-22T00:00:00.000Z
+                updated_at: 2026-10-22T00:00:00.000Z
+                archived_at: null
+                scope: personal
+                completion_rule: evidence
+                checklist:
+                  - id: 55555555-5555-4555-8555-555555555555
+                    text: Restore on test VM
+                    done: false
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              project_id: 22222222-2222-4222-8222-222222222222
+              title: Restore backup
+              checklist:
+                - Restore on test VM
+  /api/v1/tasks/{task_id}:
+    get:
+      operationId: get_task
+      summary: get task
+      description: Read task, checklist, owner and current version. Archived tasks remain readable by ID.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: 33333333-3333-4333-8333-333333333333
+                code: LAB-1
+                project_id: 22222222-2222-4222-8222-222222222222
+                title: Restore backup
+                status: in_progress
+                completion_evidence: null
+                version: 2
+                owner_session_id: 44444444-4444-4444-8444-444444444444
+                generation: 2
+                created_at: 2026-10-22T00:00:00.000Z
+                updated_at: 2026-10-22T00:00:00.000Z
+                archived_at: null
+                scope: personal
+                completion_rule: evidence
+                checklist:
+                  - id: 55555555-5555-4555-8555-555555555555
+                    text: Restore on test VM
+                    done: false
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+    patch:
+      operationId: update_task
+      summary: update task
+      description: "Owner-only update using session_id, generation and base_version. checklist replaces the full list: retain
+        existing IDs, omit an ID for a new item; omitted existing items are removed. To set done, provide
+        completion_evidence.kind matching the project completion_rule. Evidence is declared by the client, not
+        independently verified."
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: 33333333-3333-4333-8333-333333333333
+                code: LAB-1
+                project_id: 22222222-2222-4222-8222-222222222222
+                title: Restore backup and document results
+                status: in_progress
+                completion_evidence: null
+                version: 3
+                owner_session_id: 44444444-4444-4444-8444-444444444444
+                generation: 2
+                created_at: 2026-10-22T00:00:00.000Z
+                updated_at: 2026-10-22T00:00:00.000Z
+                archived_at: null
+                scope: personal
+                completion_rule: evidence
+                checklist:
+                  - id: 55555555-5555-4555-8555-555555555555
+                    text: Restore on test VM
+                    done: false
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              base_version: 2
+              session_id: 44444444-4444-4444-8444-444444444444
+              generation: 2
+              title: Restore backup and document results
+  /api/v1/tasks/{task_id}/context:
+    get:
+      operationId: get_task_context
+      summary: get task context
+      description: Read current task and latest checkpoint in one DB snapshot. checkpoint is null before the first handoff.
+        Requesting private notes without read_private returns 403.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: include_private
+          in: query
+          required: false
+          schema:
+            default: false
+            type: boolean
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskContext"
+              example:
+                task:
+                  id: 33333333-3333-4333-8333-333333333333
+                  code: LAB-1
+                  project_id: 22222222-2222-4222-8222-222222222222
+                  title: Restore backup
+                  status: in_progress
+                  completion_evidence: null
+                  version: 3
+                  owner_session_id: null
+                  generation: 3
+                  created_at: 2026-10-22T00:00:00.000Z
+                  updated_at: 2026-10-22T00:00:00.000Z
+                  archived_at: null
+                  scope: personal
+                  completion_rule: evidence
+                  checklist:
+                    - id: 55555555-5555-4555-8555-555555555555
+                      text: Restore on test VM
+                      done: true
+                checkpoint:
+                  id: 66666666-6666-4666-8666-666666666666
+                  task_id: 33333333-3333-4333-8333-333333333333
+                  task_version: 3
+                  session_id: 44444444-4444-4444-8444-444444444444
+                  done: Restore verified
+                  next: Write restore guide
+                  blocker: ""
+                  decisions: Keep encrypted backups
+                  created_at: 2026-10-22T00:00:00.000Z
+                  evidence: []
+                  checklist:
+                    - id: 55555555-5555-4555-8555-555555555555
+                      text: Restore on test VM
+                      done: true
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+  /api/v1/tasks/{task_id}/checkpoints:
+    get:
+      operationId: list_checkpoints
+      summary: list checkpoints
+      description: Immutable history ordered by task_version descending. cursor is the last checkpoint ID from the previous
+        page, belonging to this task. Private note is omitted unless explicitly requested and permitted.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        - name: limit
+          in: query
+          required: false
+          schema:
+            default: 20
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: include_private
+          in: query
+          required: false
+          schema:
+            default: false
+            type: boolean
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckpointPage"
+              example:
+                items:
+                  - id: 66666666-6666-4666-8666-666666666666
+                    task_id: 33333333-3333-4333-8333-333333333333
+                    task_version: 3
+                    session_id: 44444444-4444-4444-8444-444444444444
+                    done: Restore verified
+                    next: Write restore guide
+                    blocker: ""
+                    decisions: Keep encrypted backups
+                    created_at: 2026-10-22T00:00:00.000Z
+                    evidence: []
+                    checklist:
+                      - id: 55555555-5555-4555-8555-555555555555
+                        text: Restore on test VM
+                        done: true
+                next_cursor: null
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+    post:
+      operationId: save_checkpoint
+      summary: save checkpoint
+      description: Atomically patch checklist completion flags, append a full immutable snapshot, and optionally release
+        ownership. checklist contains unique existing IDs from this task; omitted items remain unchanged. end_session
+        does not set status=done. private_note requires read_private permission; omitted keeps the previous note, empty
+        string clears the new snapshot only. done and next remain required even when ending the session.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckpointSaved"
+              example:
+                task_id: 33333333-3333-4333-8333-333333333333
+                checkpoint_id: 66666666-6666-4666-8666-666666666666
+                version: 3
+                generation: 3
+                owner_session_id: null
+                status: in_progress
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveCheckpointRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              base_version: 2
+              session_id: 44444444-4444-4444-8444-444444444444
+              generation: 2
+              done: Restore verified
+              next: Write restore guide
+              checklist:
+                - id: 55555555-5555-4555-8555-555555555555
+                  done: true
+              end_session: true
+  /api/v1/tasks/{task_id}/claim:
+    post:
+      operationId: claim_task
+      summary: claim task
+      description: Atomically claim an unowned task using base_version. Returns the complete task with new generation and
+        version. The same owner at current version is a no-op. Other owners are rejected; disconnection never releases a
+        claim.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: 33333333-3333-4333-8333-333333333333
+                code: LAB-1
+                project_id: 22222222-2222-4222-8222-222222222222
+                title: Restore backup
+                status: in_progress
+                completion_evidence: null
+                version: 2
+                owner_session_id: 44444444-4444-4444-8444-444444444444
+                generation: 2
+                created_at: 2026-10-22T00:00:00.000Z
+                updated_at: 2026-10-22T00:00:00.000Z
+                archived_at: null
+                scope: personal
+                completion_rule: evidence
+                checklist:
+                  - id: 55555555-5555-4555-8555-555555555555
+                    text: Restore on test VM
+                    done: false
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimTaskRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              base_version: 1
+              session_id: 44444444-4444-4444-8444-444444444444
+  /api/v1/tasks/{task_id}/release:
+    post:
+      operationId: release_task
+      summary: release task
+      description: Explicitly release the current session without saving a checkpoint. Unsaved drafts are not persisted. Does
+        not change task status. Force-close and archive are local admin commands, not HTTP endpoints.
+      tags:
+        - Tasks
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      responses:
+        "200":
+          description: Success. New resources also return HTTP 200. Idempotent retries return the originally committed result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+              example:
+                id: 33333333-3333-4333-8333-333333333333
+                code: LAB-1
+                project_id: 22222222-2222-4222-8222-222222222222
+                title: Restore backup
+                status: in_progress
+                completion_evidence: null
+                version: 3
+                owner_session_id: null
+                generation: 3
+                created_at: 2026-10-22T00:00:00.000Z
+                updated_at: 2026-10-22T00:00:00.000Z
+                archived_at: null
+                scope: personal
+                completion_rule: evidence
+                checklist:
+                  - id: 55555555-5555-4555-8555-555555555555
+                    text: Restore on test VM
+                    done: false
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReleaseTaskRequest"
+            example:
+              operation_id: 11111111-1111-4111-8111-111111111111
+              base_version: 2
+              session_id: 44444444-4444-4444-8444-444444444444
+              generation: 2
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Opaque per-client token provisioned by the local owner; never put in URLs.
+  schemas:
+    Project:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        name:
+          type: string
+        scope:
+          type: string
+          enum:
+            - personal
+            - work
+        completion_rule:
+          type: string
+          enum:
+            - evidence
+            - production_release
+        version:
+          type: integer
+          minimum: 1
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - code
+        - name
+        - scope
+        - completion_rule
+        - version
+        - archived_at
+    Session:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+      required:
+        - id
+        - label
+    ChecklistItem:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        done:
+          type: boolean
+      required:
+        - id
+        - text
+        - done
+    TaskSummary:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - blocked
+            - done
+        completion_evidence:
+          type:
+            - string
+            - "null"
+          description: Current wire format is serialized JSON text, not an object. Parse only when non-null. The object contains
+            kind and value.
+        version:
+          type: integer
+          minimum: 1
+        owner_session_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        generation:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+      required:
+        - id
+        - code
+        - project_id
+        - title
+        - status
+        - completion_evidence
+        - version
+        - owner_session_id
+        - generation
+        - created_at
+        - updated_at
+        - archived_at
+    Task:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        code:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - blocked
+            - done
+        completion_evidence:
+          type:
+            - string
+            - "null"
+          description: Current wire format is serialized JSON text, not an object. Parse only when non-null. The object contains
+            kind and value.
+        version:
+          type: integer
+          minimum: 1
+        owner_session_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        generation:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        archived_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+        scope:
+          type: string
+          enum:
+            - personal
+            - work
+        completion_rule:
+          type: string
+          enum:
+            - evidence
+            - production_release
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+      required:
+        - id
+        - code
+        - project_id
+        - title
+        - status
+        - completion_evidence
+        - version
+        - owner_session_id
+        - generation
+        - created_at
+        - updated_at
+        - archived_at
+        - scope
+        - completion_rule
+        - checklist
+    Evidence:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          properties:
+            kind:
+              const: text
+              type: string
+            value:
+              type: string
+          required:
+            - kind
+            - value
+        - type: object
+          additionalProperties: false
+          properties:
+            kind:
+              const: url
+              type: string
+            value:
+              type: string
+              format: uri
+              pattern: ^https?://
+          required:
+            - kind
+            - value
+    Checkpoint:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        task_version:
+          type: integer
+          minimum: 1
+        session_id:
+          type: string
+          format: uuid
+        done:
+          type: string
+        next:
+          type: string
+        blocker:
+          type: string
+        decisions:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/Evidence"
+        checklist:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChecklistItem"
+        private_note:
+          type: string
+          description: Omitted by default. Present only when include_private=true and the client has read_private permission.
+      required:
+        - id
+        - task_id
+        - task_version
+        - session_id
+        - done
+        - next
+        - blocker
+        - decisions
+        - created_at
+        - evidence
+        - checklist
+    TaskContext:
+      type: object
+      additionalProperties: false
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+        checkpoint:
+          anyOf:
+            - $ref: "#/components/schemas/Checkpoint"
+            - type: "null"
+      required:
+        - task
+        - checkpoint
+    CheckpointSaved:
+      type: object
+      additionalProperties: false
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        checkpoint_id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+        generation:
+          type: integer
+          minimum: 1
+        owner_session_id:
+          type:
+            - string
+            - "null"
+          format: uuid
+        status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - blocked
+            - done
+      required:
+        - task_id
+        - checkpoint_id
+        - version
+        - generation
+        - owner_session_id
+        - status
+    ProjectPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        next_cursor:
+          type:
+            - string
+            - "null"
+          format: uuid
+      required:
+        - items
+        - next_cursor
+    TaskPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskSummary"
+        next_cursor:
+          type:
+            - string
+            - "null"
+          format: uuid
+      required:
+        - items
+        - next_cursor
+    CheckpointPage:
+      type: object
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Checkpoint"
+        next_cursor:
+          type:
+            - string
+            - "null"
+          format: uuid
+      required:
+        - items
+        - next_cursor
+    Error:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+              enum:
+                - INVALID_INPUT
+                - INVALID_JSON
+                - PATH_BODY_MISMATCH
+                - INVALID_CURSOR
+                - INVALID_CHECKLIST
+                - COMPLETION_EVIDENCE_REQUIRED
+                - UNAUTHENTICATED
+                - FORBIDDEN
+                - BROWSER_ORIGIN_NOT_ENABLED
+                - NOT_FOUND
+                - VERSION_CONFLICT
+                - OWNER_CHANGED
+                - TASK_OWNED
+                - OPERATION_REUSED
+                - TASK_ARCHIVED
+                - PROJECT_ARCHIVED
+                - CODE_EXISTS
+                - PAYLOAD_TOO_LARGE
+                - JSON_REQUIRED
+                - RETRY_LATER
+                - INTERNAL_ERROR
+            fields:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                properties:
+                  path:
+                    type: array
+                    items:
+                      type:
+                        - string
+                        - integer
+                  code:
+                    type: string
+                required:
+                  - path
+                  - code
+          required:
+            - code
+      required:
+        - error
+    Health:
+      type: object
+      additionalProperties: false
+      properties:
+        ok:
+          type: boolean
+          const: true
+      required:
+        - ok
+    CreateProjectRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        code:
+          type: string
+          pattern: ^[A-Z][A-Z0-9]{1,11}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        scope:
+          type: string
+          enum:
+            - personal
+            - work
+        completion_rule:
+          type: string
+          enum:
+            - evidence
+            - production_release
+      required:
+        - operation_id
+        - code
+        - name
+        - scope
+      additionalProperties: false
+    UpdateProjectRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        base_version:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        completion_rule:
+          type: string
+          enum:
+            - evidence
+            - production_release
+      required:
+        - operation_id
+        - base_version
+      additionalProperties: false
+    OpenSessionRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        label:
+          type: string
+          minLength: 1
+          maxLength: 120
+      required:
+        - operation_id
+        - label
+      additionalProperties: false
+    CreateTaskRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        project_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        checklist:
+          default: []
+          maxItems: 200
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 500
+      required:
+        - operation_id
+        - project_id
+        - title
+      additionalProperties: false
+    ClaimTaskRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        base_version:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        session_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+      required:
+        - operation_id
+        - base_version
+        - session_id
+      additionalProperties: false
+    UpdateTaskRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        base_version:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        session_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        generation:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+        checklist:
+          maxItems: 200
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              text:
+                type: string
+                minLength: 1
+                maxLength: 500
+              done:
+                type: boolean
+            required:
+              - text
+              - done
+            additionalProperties: false
+        status:
+          type: string
+          enum:
+            - todo
+            - in_progress
+            - blocked
+            - done
+        completion_evidence:
+          type: object
+          properties:
+            kind:
+              type: string
+              enum:
+                - evidence
+                - production_release
+            value:
+              type: string
+              minLength: 1
+              maxLength: 4000
+          required:
+            - kind
+            - value
+          additionalProperties: false
+      required:
+        - operation_id
+        - base_version
+        - session_id
+        - generation
+      additionalProperties: false
+    SaveCheckpointRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        base_version:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        session_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        generation:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        done:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        next:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        blocker:
+          default: ""
+          type: string
+          maxLength: 4000
+        decisions:
+          default: ""
+          type: string
+          maxLength: 4000
+        evidence:
+          default: []
+          maxItems: 20
+          type: array
+          items:
+            oneOf:
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: text
+                  value:
+                    type: string
+                    minLength: 1
+                    maxLength: 2000
+                required:
+                  - kind
+                  - value
+                additionalProperties: false
+              - type: object
+                properties:
+                  kind:
+                    type: string
+                    const: url
+                  value:
+                    type: string
+                    maxLength: 2000
+                    pattern: ^https?:\/\/
+                required:
+                  - kind
+                  - value
+                additionalProperties: false
+        checklist:
+          default: []
+          maxItems: 200
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+              done:
+                type: boolean
+            required:
+              - id
+              - done
+            additionalProperties: false
+        private_note:
+          type: string
+          maxLength: 4000
+        end_session:
+          default: false
+          type: boolean
+      required:
+        - operation_id
+        - base_version
+        - session_id
+        - generation
+        - done
+        - next
+      additionalProperties: false
+    ReleaseTaskRequest:
+      type: object
+      properties:
+        operation_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        base_version:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+        session_id:
+          type: string
+          format: uuid
+          pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+        generation:
+          type: integer
+          exclusiveMinimum: 0
+          maximum: 9007199254740991
+      required:
+        - operation_id
+        - base_version
+        - session_id
+        - generation
+      additionalProperties: false
+  responses:
+    Error400:
+      description: INVALID_INPUT, INVALID_JSON, PATH_BODY_MISMATCH, INVALID_CURSOR, INVALID_CHECKLIST, COMPLETION_EVIDENCE_REQUIRED
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            INVALID_INPUT:
+              value:
+                error:
+                  code: INVALID_INPUT
+            INVALID_JSON:
+              value:
+                error:
+                  code: INVALID_JSON
+            PATH_BODY_MISMATCH:
+              value:
+                error:
+                  code: PATH_BODY_MISMATCH
+            INVALID_CURSOR:
+              value:
+                error:
+                  code: INVALID_CURSOR
+            INVALID_CHECKLIST:
+              value:
+                error:
+                  code: INVALID_CHECKLIST
+            COMPLETION_EVIDENCE_REQUIRED:
+              value:
+                error:
+                  code: COMPLETION_EVIDENCE_REQUIRED
+    Error401:
+      description: UNAUTHENTICATED
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            UNAUTHENTICATED:
+              value:
+                error:
+                  code: UNAUTHENTICATED
+    Error403:
+      description: FORBIDDEN, BROWSER_ORIGIN_NOT_ENABLED
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            FORBIDDEN:
+              value:
+                error:
+                  code: FORBIDDEN
+            BROWSER_ORIGIN_NOT_ENABLED:
+              value:
+                error:
+                  code: BROWSER_ORIGIN_NOT_ENABLED
+    Error404:
+      description: NOT_FOUND
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            NOT_FOUND:
+              value:
+                error:
+                  code: NOT_FOUND
+    Error409:
+      description: VERSION_CONFLICT, OWNER_CHANGED, TASK_OWNED, OPERATION_REUSED, TASK_ARCHIVED, PROJECT_ARCHIVED,
+        CODE_EXISTS. Keep draft, fetch current state, resolve before issuing a new operation_id. Retry the same ID only
+        for the same request.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            VERSION_CONFLICT:
+              value:
+                error:
+                  code: VERSION_CONFLICT
+            OWNER_CHANGED:
+              value:
+                error:
+                  code: OWNER_CHANGED
+            TASK_OWNED:
+              value:
+                error:
+                  code: TASK_OWNED
+            OPERATION_REUSED:
+              value:
+                error:
+                  code: OPERATION_REUSED
+            TASK_ARCHIVED:
+              value:
+                error:
+                  code: TASK_ARCHIVED
+            PROJECT_ARCHIVED:
+              value:
+                error:
+                  code: PROJECT_ARCHIVED
+            CODE_EXISTS:
+              value:
+                error:
+                  code: CODE_EXISTS
+    Error413:
+      description: PAYLOAD_TOO_LARGE
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            PAYLOAD_TOO_LARGE:
+              value:
+                error:
+                  code: PAYLOAD_TOO_LARGE
+    Error415:
+      description: JSON_REQUIRED
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            JSON_REQUIRED:
+              value:
+                error:
+                  code: JSON_REQUIRED
+    Error500:
+      description: INTERNAL_ERROR
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            INTERNAL_ERROR:
+              value:
+                error:
+                  code: INTERNAL_ERROR
+    Error503:
+      description: RETRY_LATER. Retry identical request with backoff.
+      headers:
+        Retry-After:
+          description: Retry delay in seconds.
+          schema:
+            type: string
+          example: "1"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            RETRY_LATER:
+              value:
+                error:
+                  code: RETRY_LATER
