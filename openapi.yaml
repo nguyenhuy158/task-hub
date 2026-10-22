@@ -3,19 +3,17 @@ jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
 info:
   title: Task Hub API
   version: 0.1.0
-  description: "FE/BE contract for the local MVP. Change this contract and BE together; pnpm openapi:check rejects
-    request/route drift and validates actual response fixtures. Bearer tokens are opaque, not JWT. Browser requests
-    carrying Origin are currently rejected; FE integration needs a separately approved authentication/origin change or a
-    trusted server-side proxy. Do not embed personal client tokens in a shipped frontend. All mutations need
-    operation_id; retry an uncertain result with the identical ID and payload. Conflicts require a fresh read and
-    explicit resolution. Strings declared as nonempty text are trimmed before length validation; send normalized text.
-    IDs and timestamps are server generated; times are UTC. Maximum JSON request body: 65536 bytes. Responses use
-    Cache-Control: no-store. No force-close/archive HTTP routes exist."
+  description: "REST and MCP share task rules. AI clients use opaque bearer tokens without Origin. Web owners use the
+    verified huyab_sso cookie and an email allowlist with a pinned SSO subject. Web mutations require exact Origin
+    https://task.huyab.click and X-CSRF-Token from auth/me. Bearer tokens never grant web admin rights. Retry task
+    mutations with the identical operation_id and payload. Conflicts require an explicit fresh read. Responses use
+    Cache-Control: no-store."
 servers:
   - url: http://127.0.0.1:4180
     description: Local Docker or Node API
 security:
   - bearerAuth: []
+  - ssoCookie: []
 tags:
   - name: Projects
   - name: Sessions
@@ -144,6 +142,10 @@ paths:
               code: LAB
               name: Homelab
               scope: personal
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/projects/{project_id}:
     patch:
       operationId: update_project
@@ -203,6 +205,10 @@ paths:
               operation_id: 11111111-1111-4111-8111-111111111111
               base_version: 1
               name: My homelab
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/sessions:
     post:
       operationId: open_session
@@ -248,6 +254,10 @@ paths:
             example:
               operation_id: 11111111-1111-4111-8111-111111111111
               label: Codex on Mac
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/tasks:
     get:
       operationId: list_tasks
@@ -403,6 +413,10 @@ paths:
               title: Restore backup
               checklist:
                 - Restore on test VM
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/tasks/{task_id}:
     get:
       operationId: get_task
@@ -531,6 +545,10 @@ paths:
               session_id: 44444444-4444-4444-8444-444444444444
               generation: 2
               title: Restore backup and document results
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/tasks/{task_id}/context:
     get:
       operationId: get_task_context
@@ -750,6 +768,10 @@ paths:
                 - id: 55555555-5555-4555-8555-555555555555
                   done: true
               end_session: true
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/tasks/{task_id}/claim:
     post:
       operationId: claim_task
@@ -821,6 +843,10 @@ paths:
               operation_id: 11111111-1111-4111-8111-111111111111
               base_version: 1
               session_id: 44444444-4444-4444-8444-444444444444
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
   /api/v1/tasks/{task_id}/release:
     post:
       operationId: release_task
@@ -892,12 +918,214 @@ paths:
               base_version: 2
               session_id: 44444444-4444-4444-8444-444444444444
               generation: 2
+      security:
+        - bearerAuth: []
+        - ssoCookie: []
+          csrfHeader: []
+  /api/v1/auth/login:
+    get:
+      operationId: web_login
+      summary: Redirect to Google login through SSO
+      security: []
+      responses:
+        "302":
+          description: Navigate to the trusted SSO login URL. Return URL is fixed to https://task.huyab.click/.
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                format: uri
+        "403":
+          $ref: "#/components/responses/Error403"
+        "503":
+          $ref: "#/components/responses/Error503"
+  /api/v1/auth/me:
+    get:
+      operationId: web_current_user
+      summary: Current allowed web owner and CSRF token
+      security:
+        - ssoCookie: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - sub
+                  - email
+                  - expires_at
+                  - csrf_token
+                properties:
+                  sub: &a1
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                  expires_at:
+                    type: integer
+                  csrf_token: *a1
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+  /api/v1/auth/logout:
+    post:
+      operationId: web_logout
+      summary: Prepare global SSO logout
+      description: Requires valid web auth, exact Origin and CSRF header. Navigate the browser to redirect_url to clear the
+        shared SSO cookie and log out of all SSO apps. This response alone does not clear the cookie or revoke an issued
+        JWT.
+      security:
+        - ssoCookie: []
+          csrfHeader: []
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - redirect_url
+                properties:
+                  redirect_url:
+                    type: string
+                    format: uri
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
+  /api/v1/tasks/{task_id}/close-owner:
+    post:
+      operationId: close_owner
+      summary: Owner confirms revoking the exact task owner
+      description: Only the web owner may call this endpoint. Confirmation must use the task version, owner session and
+        generation shown to the user. Stale confirmation returns 409. Retry with the same operation_id and payload.
+      security:
+        - ssoCookie: []
+          csrfHeader: []
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                operation_id:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                base_version:
+                  type: integer
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+                expected_owner_session_id:
+                  type: string
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                expected_generation:
+                  type: integer
+                  exclusiveMinimum: 0
+                  maximum: 9007199254740991
+              required:
+                - operation_id
+                - base_version
+                - expected_owner_session_id
+                - expected_generation
+              additionalProperties: false
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - id
+                  - version
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  version:
+                    type: integer
+                    minimum: 1
+        "400":
+          $ref: "#/components/responses/Error400"
+        "401":
+          $ref: "#/components/responses/Error401"
+        "403":
+          $ref: "#/components/responses/Error403"
+        "404":
+          $ref: "#/components/responses/Error404"
+        "409":
+          $ref: "#/components/responses/Error409"
+        "413":
+          $ref: "#/components/responses/Error413"
+        "415":
+          $ref: "#/components/responses/Error415"
+        "500":
+          $ref: "#/components/responses/Error500"
+        "503":
+          $ref: "#/components/responses/Error503"
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       description: Opaque per-client token provisioned by the local owner; never put in URLs.
+    ssoCookie:
+      type: apiKey
+      in: cookie
+      name: huyab_sso
+      description: RS256 SSO JWT. Verified issuer, audience, expiry, allowed email and pinned subject.
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Obtain from auth/me; bound to the current SSO cookie. Web mutations also require exact Origin
+        https://task.huyab.click.
   schemas:
     Project:
       type: object
@@ -1296,6 +1524,9 @@ components:
                 - UNAUTHENTICATED
                 - FORBIDDEN
                 - BROWSER_ORIGIN_NOT_ENABLED
+                - ORIGIN_NOT_ALLOWED
+                - CSRF_INVALID
+                - WEB_AUTH_DISABLED
                 - NOT_FOUND
                 - VERSION_CONFLICT
                 - OWNER_CHANGED
@@ -1694,7 +1925,7 @@ components:
                 error:
                   code: UNAUTHENTICATED
     Error403:
-      description: FORBIDDEN, BROWSER_ORIGIN_NOT_ENABLED
+      description: FORBIDDEN, BROWSER_ORIGIN_NOT_ENABLED, ORIGIN_NOT_ALLOWED, CSRF_INVALID
       content:
         application/json:
           schema:
@@ -1790,7 +2021,7 @@ components:
                 error:
                   code: INTERNAL_ERROR
     Error503:
-      description: RETRY_LATER. Retry identical request with backoff.
+      description: RETRY_LATER or WEB_AUTH_DISABLED. Retry identical request with backoff only for RETRY_LATER.
       headers:
         Retry-After:
           description: Retry delay in seconds.

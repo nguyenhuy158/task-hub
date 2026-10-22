@@ -1,39 +1,32 @@
-# Auth web — đề xuất cho #6
+# Auth web — SSO cho Task Hub
 
-**Trạng thái: đã khảo sát source, chưa được duyệt triển khai.** Tài liệu không tạo API, cấu hình SSO hay quyền deploy. [Issue #6](https://github.com/nguyenhuy158/task-hub/issues/6).
+Backend dùng SSO tại `https://auth.huyab.click`, redirect về `https://task.huyab.click/`. Google OAuth do dịch vụ SSO quản lý; Task Hub không giữ Google client secret. Đây là phần backend của [issue #6](https://github.com/nguyenhuy158/task-hub/issues/6); UI xác nhận thu hồi và bằng chứng đăng nhập thật vẫn còn thiếu.
 
-## Phát hiện từ code hiện có
+## Xác thực và giới hạn chủ
 
-- Task Hub: `src/app.ts` từ chối mọi request có Origin, sau đó xác thực bearer token AI. `src/admin.ts` giữ close-owner/archive ngoài HTTP. `Principal` hiện là client có scope/read_private, chưa có vai trò chủ web.
-- [SSO repo](https://github.com/nguyenhuy158/sso), [hướng dẫn tích hợp](https://github.com/nguyenhuy158/sso/blob/main/docs/INTEGRATION.md): Google login dùng chung; cookie HttpOnly/Secure/SameSite=Lax trên domain chung; JWT RS256 và JWKS công khai.
-- [Thư viện verifier](https://github.com/nguyenhuy158/kit/tree/main/packages/sso): `verifySsoToken` kiểm tra chữ ký, issuer, expiry, sub/email; audience là tùy chọn và phải bật rõ. `getClaimsFromRequest` hỗ trợ cả cookie lẫn bearer; Task Hub phải tách đường web/AI, không nhận SSO bearer như token AI một cách ngầm định.
-- Verifier cache key theo issuer/kid, không fetch mỗi request. Cần rà cách pin package, rotation/cache và kiểu claims trước tích hợp; chưa chứng minh source checkout trùng package version sẽ cài.
-- Cookie domain không tới localhost. Login redirect chỉ chấp nhận HTTPS thuộc domain SSO cho phép. Logout SSO đăng xuất tất cả app dùng cookie chung.
+- Chỉ bật web auth khi có `TASK_HUB_SSO_ALLOWED_EMAIL`; giá trị phải là một email hợp lệ. Thiếu biến thì API bearer/MCP vẫn chạy, login web trả 503. Giá trị thật thuộc cấu hình riêng, không commit.
+- Backend chỉ nhận SSO từ cookie `huyab_sso`. `jose` được pin trong package/lockfile; kiểm tra RS256, issuer cố định, audience `huyab.click`, sub/email/iat/exp và thời hạn. JWKS có cache hữu hạn, timeout và hỗ trợ đổi kid. Không nhận JWKS URL từ token/request.
+- Email phải khớp allowlist trên mọi request. Lần đầu được chấp nhận sẽ ghim issuer/sub vào `web_owner` trong SQLite; sub khác bị từ chối dù cùng email. Không tự đổi chủ khi đổi cấu hình email. Chuyển chủ cần quy trình riêng được duyệt.
+- Web owner có một principal riêng, scope all/read_private, không có bearer credential. Dùng cùng Store và quy tắc session/task với AI. Bearer AI không thể gọi me/logout/close-owner của chủ. Request chứa Authorization luôn được xử lý như bearer, không fallback sang cookie.
 
-Đây là kiểm tra source, không phải đã thử đăng nhập production hoặc đã thay đổi SSO. Các repo ngoài phải đọc lại phiên bản đang pin khi triển khai.
+## Cookie, CSRF và logout
 
-## Phạm vi đã đề xuất trong chat
+Task Hub không tạo session cookie riêng. Cookie SSO do issuer đặt HttpOnly/Secure, domain `.huyab.click`. API kiểm tra JWT trên từng request. `GET /api/v1/auth/me` trả thông tin chủ, expiry và CSRF token ràng buộc với JWT hiện tại; không trả JWT. Response không cache, không bật CORS.
 
-1. Tái sử dụng SSO; allowlist đúng một owner theo định danh ổn định `sub` với issuer đã xác minh. Không cho mọi Google user trở thành chủ.
-2. Thiết kế cookie/session, CSRF, exact Origin allowlist; token AI giữ scope hiện có, không có quyền admin.
-3. Chủ xác nhận thu hồi đúng task/version/owner/generation; thay đổi trong lúc mở dialog phải trả conflict. Tái dùng `Store.closeOwner`, không viết đường bypass riêng.
-4. Login/logout/current-user và admin routes nếu cần phải được đưa vào `openapi.yaml`, code và tests cùng lúc. Tên endpoint/session lifetime chưa chốt.
-5. Dev login/danh tính giả riêng, chỉ môi trường local rõ ràng; không dùng production cookie/key và không mở bypass có thể bật ở production.
+Request web có Origin phải khớp chính xác `https://task.huyab.click`. Mọi mutation web cần Origin đó và `X-CSRF-Token` lấy từ me. Token CSRF là SHA-256 với nhãn riêng và JWT làm đầu vào; chỉ backend có thể đọc cookie HttpOnly và endpoint cùng origin mới trả token này. Khi JWT đổi, client lấy lại me. Không dùng SameSite để thay CSRF: subdomain khác vẫn là same-site.
 
-## Quyết định cần chốt trước code
+- `GET /api/v1/auth/login`: 302 tới login SSO; return URL cố định từ cấu hình ứng dụng, không lấy từ Host/query.
+- `POST /api/v1/auth/logout`: kiểm tra auth/Origin/CSRF, trả `redirect_url`. Frontend phải điều hướng trình duyệt tới URL này để issuer xóa cookie dùng chung. Response này tự nó chưa đăng xuất; logout ảnh hưởng tất cả app SSO.
+- SSO dùng JWT stateless: xóa cookie không thu hồi một bản JWT đã bị sao chép; bản đó còn hợp lệ tới expiry. Thu hồi client web qua CLI chặn principal ngay trên Task Hub nhưng không đóng owner task.
 
-| Điểm | Hướng đề xuất / câu cần trả lời |
-|---|---|
-| Domain/owner | Xác nhận domain dự kiến và owner sub; không công khai định danh thật trong repo |
-| Session ứng dụng | Quyết định dùng cookie SSO trực tiếp hay đổi sang session riêng; mô tả expiry/revoke/logout để không tự đăng nhập lại ngoài ý muốn |
-| Logout | Giải thích logout toàn SSO; nếu thêm logout riêng, cần cơ chế ngăn tự tái tạo session từ cookie SSO còn sống |
-| Local | Chọn test issuer/key hoặc cơ chế bootstrap local có giới hạn; test từ chối khi bind non-loopback/chạy mode thật |
-| UI admin | #6 cần form xác nhận thu hồi; lên kế hoạch giao diện nhỏ phù hợp bố cục A, không coi lựa chọn A là duyệt mọi màn auth |
+## Thu hồi owner
 
-Cookie dùng chung tin cậy các app trong cùng domain; cần đánh giá ranh giới subdomain. SameSite không thay kiểm tra Origin/CSRF giữa các subdomain. Không lưu JWT trong localStorage, không log credential/body checkpoint. Dữ liệu URL redirect lấy từ cấu hình đáng tin, không từ Host tùy ý.
+`POST /api/v1/tasks/{task_id}/close-owner` chỉ dành cho web owner. UI phải hiện task và owner đang giữ, rồi gửi `operation_id`, `base_version`, `expected_owner_session_id`, `expected_generation` sau xác nhận. Store.closeOwner giữ transaction, idempotency và conflict hiện có; không có tool MCP tương ứng. Phiên AI không thể nhận quyền thu hồi chỉ vì có scope all.
 
-## Files dự kiến và kiểm chứng
+## Local, migration và xác minh
 
-`src/app.ts`, module auth mới, `src/server.ts`, Store/migration nếu cần session web, `openapi.yaml`, tests, package/lockfile khi thêm verifier, config mẫu không secret và docs. Chỉ sửa repo SSO/kit khi có kế hoạch riêng được duyệt.
+Cookie SSO không đến localhost. Test tự động dùng khóa RSA/JWKS giả trong process; server không có test issuer hoặc dev login bypass. Thử đăng nhập thật cần HTTPS đúng domain và quyền triển khai riêng; đợt backend không đổi DNS, deploy hoặc sửa SSO.
 
-Test synthetic local: login/logout, expired/tampered JWT, sai issuer/audience/sub, không nâng quyền bearer AI, IDOR, CSRF/Origin, session revoke, close-owner với expected owner/version sai. Giữ bộ test API/MCP hiện có xanh. Test browser phải chứng minh UI và dữ liệu lưu khớp nhau. Chạy CI exact commit; không deploy hoặc ghi dữ liệu thật trong đợt này.
+Migration 002 thêm bảng ghim chủ, giữ các client/task/token cũ. Test kiểm tra migration từ v1, giữ dữ liệu và danh tính sau restart, JWT giả/hết hạn/sai issuer/audience/algorithm, đổi kid/JWKS lỗi, allowlist, Origin/CSRF, IDOR, bearer AI và close-owner conflict/retry. Contract tests đối chiếu cả response auth/admin. Chạy `pnpm check`, `pnpm test`, `pnpm openapi:check`, `pnpm api:types`, `pnpm build`.
+
+Chưa có UI auth/thu hồi, chưa có browser proof đăng nhập tại domain thật hoặc CI cho head đã publish. Không đóng #6 từ bằng chứng backend local.

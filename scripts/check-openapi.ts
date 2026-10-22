@@ -7,7 +7,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { z } from 'zod';
-import { schemas, routes } from '../src/contracts.js';
+import { schemas, routes, closeSchema } from '../src/contracts.js';
 
 export const specPath=fileURLToPath(new URL('../openapi.yaml',import.meta.url));
 export function requestContract(route:typeof routes[number]) {
@@ -33,15 +33,22 @@ export async function loadContract() {
   const spec=await SwaggerParser.dereference(structuredClone(raw));
   const ajv=new Ajv2020({strict:false,allErrors:true});
   addFormats(ajv);
-  const expected=['GET /health',...routes.map(r=>r.method+' /api/v1'+r.path.replace(/:(\w+)/g,'{$1}'))].sort();
+  const expected=['GET /health','GET /api/v1/auth/login','GET /api/v1/auth/me','POST /api/v1/auth/logout','POST /api/v1/tasks/{task_id}/close-owner',...routes.map(r=>r.method+' /api/v1'+r.path.replace(/:(\w+)/g,'{$1}'))].sort();
   const actual=Object.entries(raw.paths).flatMap(([path,item])=>Object.keys(item as object).filter(method=>['get','post','patch','put','delete','options','head','trace'].includes(method)).map(method=>method.toUpperCase()+' '+path)).sort();
   assert.deepEqual(actual,expected,'OpenAPI operations must exactly match BE routes');
-  assert.deepEqual(raw.security,[{bearerAuth:[]}]);
+  assert.deepEqual(raw.security,[{bearerAuth:[]},{ssoCookie:[]}]);
   assert.deepEqual(raw.paths['/health'].get.security,[]);
+  assert.deepEqual(raw.paths['/api/v1/auth/login'].get.security,[]);
+  assert.deepEqual(raw.paths['/api/v1/auth/me'].get.security,[{ssoCookie:[]}]);
+  for(const path of ['/api/v1/auth/logout','/api/v1/tasks/{task_id}/close-owner']) assert.deepEqual(raw.paths[path].post.security,[{ssoCookie:[],csrfHeader:[]}]);
+  const closeBody=z.toJSONSchema(closeSchema.omit({task_id:true}),{io:'input'});
+  delete closeBody.$schema;
+  assert.deepEqual(structural(spec.paths!['/api/v1/tasks/{task_id}/close-owner']!.post.requestBody.content['application/json'].schema),structural(closeBody));
   const ids=new Set<string>();
   for(const route of routes) {
     const path='/api/v1'+route.path.replace(/:(\w+)/g,'{$1}');
     const operation=spec.paths![path]![route.method.toLowerCase()];
+    if(route.method!=='GET') assert.deepEqual(operation.security,[{bearerAuth:[]},{ssoCookie:[],csrfHeader:[]}]);
     assert.equal(operation.operationId,route.command);
     assert(!ids.has(operation.operationId)); ids.add(operation.operationId);
     const contract=requestContract(route);
@@ -56,6 +63,11 @@ export async function loadContract() {
   for(const [path,item] of Object.entries(spec.paths!)) for(const [method,operation] of Object.entries(item!)) {
     if(!['get','post','patch'].includes(method)) continue;
     for(const [status,response] of Object.entries(operation.responses)) {
+      if(status==='302') {
+        assert.equal(path,'/api/v1/auth/login');
+        assert.equal(response.headers.Location.schema.format,'uri');
+        continue;
+      }
       const media=response.content?.['application/json'];
       assert(media?.schema,`${method} ${path}: ${status} schema required`);
       const validate=ajv.compile(media.schema);
@@ -82,5 +94,5 @@ export async function loadContract() {
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   await loadContract();
-  console.log('OpenAPI valid: 14 operations, request schemas match BE, schemas and examples validated.');
+  console.log('OpenAPI valid: 18 operations, request schemas match BE, schemas and examples validated.');
 }

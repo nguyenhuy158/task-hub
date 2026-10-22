@@ -7,7 +7,7 @@
     "node": ">=24.13.0"
   },
   "scripts": {
-    "dev": "node --env-file-if-exists=.env.development.local --import tsx src/server.ts",
+    "dev": "node --env-file-if-exists=.env.development.local --env-file-if-exists=.env.sso.local --import tsx src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "tsx --test tests/*.test.ts",
@@ -22,6 +22,7 @@
     "@hono/node-server": "^2.1.5",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "hono": "^4.13.13",
+    "jose": "6.2.13",
     "zod": "^4.6.7"
   },
   "devDependencies": {
