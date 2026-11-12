@@ -24,7 +24,7 @@ test('SSO cookie, owner pinning, CSRF, AI separation and close-owner contract', 
   const op = () => ({ operation_id: randomUUID() });
   const now = Math.floor(Date.now() / 1000);
   async function sign(overrides: Record<string, unknown> = {}, key = privateKey, alg = 'RS256') {
-    return new SignJWT({ iss: issuer, aud: 'huyab.click', sub: 'fixture-owner', email: 'owner@example.com', iat: now, exp: now + 300, ...overrides }).setProtectedHeader({ alg, kid: 'fixture' }).sign(key);
+    return new SignJWT({ iss: issuer, aud: 'huyab.cfd', sub: 'fixture-owner', email: 'owner@example.com', iat: now, exp: now + 300, ...overrides }).setProtectedHeader({ alg, kid: 'fixture' }).sign(key);
   }
   const token = await sign();
   const cookie = { Cookie: 'huyab_sso=' + token };
@@ -64,13 +64,13 @@ test('SSO cookie, owner pinning, CSRF, AI separation and close-owner contract', 
     assert(!JSON.stringify(user).includes(token));
     assert.equal(store.one('SELECT subject FROM web_owner')?.subject, 'fixture-owner');
     await call('GET', '/api/v1/auth/me', { Cookie: 'huyab_sso=' + await sign({ sub: 'other-sub' }) }, undefined, 403);
-    await call('GET', '/api/v1/auth/me', { ...cookie, Origin: 'https://sibling.huyab.click' }, undefined, 403);
+    await call('GET', '/api/v1/auth/me', { ...cookie, Origin: 'https://sibling.huyab.cfd' }, undefined, 403);
     await call('GET', '/api/v1/auth/me', { ...cookie, 'Sec-Fetch-Site': 'cross-site' }, undefined, 403);
     await call('GET', '/api/v1/auth/me', { Authorization: 'Bearer ' + token }, undefined, 401);
     await call('GET', '/api/v1/auth/me', { ...cookie, Authorization: 'Bearer invalid' }, undefined, 401);
     await call('GET', '/api/v1/auth/me', { Authorization: 'Bearer ' + aiToken }, undefined, 403);
     const mutation = { ...cookie, Origin: webOrigin, 'X-CSRF-Token': user.csrf_token, 'Content-Type': 'application/json' };
-    for (const headers of [cookie, { ...cookie, Origin: webOrigin }, { ...mutation, Origin: 'null' }, { ...mutation, Origin: 'https://sibling.huyab.click' }, { ...mutation, 'X-CSRF-Token': 'wrong' }, { ...mutation, Cookie: 'huyab_sso=' + await sign({ iat: now - 1 }) }]) {
+    for (const headers of [cookie, { ...cookie, Origin: webOrigin }, { ...mutation, Origin: 'null' }, { ...mutation, Origin: 'https://sibling.huyab.cfd' }, { ...mutation, 'X-CSRF-Token': 'wrong' }, { ...mutation, Cookie: 'huyab_sso=' + await sign({ iat: now - 1 }) }]) {
       await call('POST', '/api/v1/projects', headers, { ...op(), code: 'DENIED', name: 'Denied', scope: 'personal' }, 403);
     }
     assert.equal(store.one('SELECT count(*) AS n FROM projects')?.n, 0);
@@ -118,7 +118,7 @@ test('JWKS cache refresh and failures remain closed', async () => {
   });
   const auth = createWebAuth('owner@example.com', remote);
   async function headers(kid: string, key = pair.privateKey) {
-    const token = await new SignJWT({ email: 'owner@example.com' }).setProtectedHeader({ alg: 'RS256', kid }).setIssuer(issuer).setAudience('huyab.click').setSubject('owner').setIssuedAt().setExpirationTime('5m').sign(key);
+    const token = await new SignJWT({ email: 'owner@example.com' }).setProtectedHeader({ alg: 'RS256', kid }).setIssuer(issuer).setAudience('huyab.cfd').setSubject('owner').setIssuedAt().setExpirationTime('5m').sign(key);
     return new Headers({ Cookie: 'huyab_sso=' + token });
   }
   await auth.authenticate(await headers('one'));

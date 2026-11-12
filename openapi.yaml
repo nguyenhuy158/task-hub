@@ -5,7 +5,7 @@ info:
   version: 0.1.0
   description: "REST and MCP share task rules. AI clients use opaque bearer tokens without Origin. Web owners use the
     verified huyab_sso cookie and an email allowlist with a pinned SSO subject. Web mutations require exact Origin
-    https://task.huyab.click and X-CSRF-Token from auth/me. Bearer tokens never grant web admin rights. Retry task
+    https://task.huyab.cfd and X-CSRF-Token from auth/me. Bearer tokens never grant web admin rights. Retry task
     mutations with the identical operation_id and payload. Conflicts require an explicit fresh read. Responses use
     Cache-Control: no-store."
 servers:
@@ -929,7 +929,7 @@ paths:
       security: []
       responses:
         "302":
-          description: Navigate to the trusted SSO login URL. Return URL is fixed to https://task.huyab.click/.
+          description: Navigate to the trusted SSO login URL. Return URL is fixed to https://task.huyab.cfd/.
           headers:
             Location:
               required: true
@@ -1125,7 +1125,7 @@ components:
       in: header
       name: X-CSRF-Token
       description: Obtain from auth/me; bound to the current SSO cookie. Web mutations also require exact Origin
-        https://task.huyab.click.
+        https://task.huyab.cfd.
   schemas:
     Project:
       type: object

@@ -3,8 +3,8 @@ import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { z } from 'zod';
 import { ApiError } from './store.js';
 
-export const issuer = 'https://auth.huyab.click';
-export const webOrigin = 'https://task.huyab.click';
+export const issuer = 'https://auth.huyab.cfd';
+export const webOrigin = 'https://task.huyab.cfd';
 const claimsSchema = z.object({ sub: z.string().min(1).max(200), email: z.email(), exp: z.number().int().positive() });
 
 export function createWebAuth(allowedEmail: string, keys: JWTVerifyGetKey = createRemoteJWKSet(new URL(issuer + '/.well-known/jwks.json'))) {
@@ -22,7 +22,7 @@ export function createWebAuth(allowedEmail: string, keys: JWTVerifyGetKey = crea
       const token = cookies[0].slice('huyab_sso='.length);
       let claims: z.infer<typeof claimsSchema>;
       try {
-        const verified = await jwtVerify(token, keys, { issuer, audience: 'huyab.click', algorithms: ['RS256'], requiredClaims: ['sub', 'email', 'exp', 'iat'] });
+        const verified = await jwtVerify(token, keys, { issuer, audience: 'huyab.cfd', algorithms: ['RS256'], requiredClaims: ['sub', 'email', 'exp', 'iat'] });
         claims = claimsSchema.parse(verified.payload);
       } catch {
         throw new ApiError(401, 'UNAUTHENTICATED');

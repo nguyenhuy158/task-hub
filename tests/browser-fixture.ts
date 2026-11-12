@@ -41,7 +41,7 @@ writeFileSync(join(directory, 'client.token'), token, { mode: 0o600 });
 writeFileSync(join(directory, 'manifest.json'), JSON.stringify({ task: task.id, other: other.id, session: session.id, project: project.id }));
 const app = new Hono();
 app.get('/__fixture/login', async c => {
-  const jwt = await new SignJWT({ email: 'owner@example.com' }).setProtectedHeader({ alg: 'RS256', kid: 'browser-fixture' }).setIssuer(issuer).setAudience('huyab.click').setSubject('browser-fixture-owner').setIssuedAt().setExpirationTime('1h').sign(privateKey);
+  const jwt = await new SignJWT({ email: 'owner@example.com' }).setProtectedHeader({ alg: 'RS256', kid: 'browser-fixture' }).setIssuer(issuer).setAudience('huyab.cfd').setSubject('browser-fixture-owner').setIssuedAt().setExpirationTime('1h').sign(privateKey);
   c.header('Set-Cookie', 'huyab_sso=' + jwt + '; HttpOnly; SameSite=Strict; Path=/');
   return c.redirect('/');
 });
