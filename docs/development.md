@@ -37,7 +37,7 @@ rtk proxy pnpm start
 
 Chạy từ thư mục task-hub. API mặc định http://127.0.0.1:4180. Token được ghi file mode 0600, không in ra terminal; SQLite chỉ lưu hash. Không ghi đè file token đã tồn tại. Muốn client truy cập cả work/personal dùng scope `all`; chỉ cấp `--private` khi cần đọc/ghi ghi chú riêng. Không gửi token trong URL.
 
-Config: `TASK_HUB_DB` mặc định `data/task-hub.sqlite`, `HOST` mặc định `127.0.0.1`, `PORT` mặc định `4180`. Bearer AI vẫn từ chối Origin. Web auth dùng cookie SSO, chỉ chấp nhận Origin `https://task.huyab.click`; xem phần SSO bên dưới.
+Config: `TASK_HUB_DB` mặc định `data/task-hub.sqlite`, `HOST` mặc định `127.0.0.1`, `PORT` mặc định `4180`. Bearer AI vẫn từ chối Origin. Web auth dùng cookie SSO, chỉ chấp nhận Origin `https://task.huyab.cfd`; xem phần SSO bên dưới.
 
 ## Docker Compose
 
@@ -148,7 +148,7 @@ Theo [AGENTS.md](../AGENTS.md): chọn issue, duyệt kế hoạch, làm trên b
 
 Thiết kế và giới hạn: [Auth web](architecture/auth-web-proposal.md). Đặt `TASK_HUB_SSO_ALLOWED_EMAIL` trong cấu hình riêng của server; không commit email thật. `pnpm dev` đọc thêm `.env.sso.local` nếu có; file này phải giữ quyền 0600 và được Git ignore. Cấu hình mẫu dùng `owner@example.com`. Nếu thiếu biến, web auth tắt; nếu có nhưng rỗng/sai định dạng, server từ chối khởi động. Không thay token AI hoặc reset dữ liệu khi bật SSO.
 
-`GET /api/v1/auth/login` chuyển tới Google qua SSO. Sau khi quay về app, FE gọi `GET /api/v1/auth/me` lấy chủ và `csrf_token`; mọi mutation cookie cần `Origin: https://task.huyab.click` và `X-CSRF-Token`. `POST /api/v1/auth/logout` trả `redirect_url`: trình duyệt phải đi tới đó để đăng xuất toàn SSO. Backend không lưu JWT trong DB hay trả JWT cho JavaScript.
+`GET /api/v1/auth/login` chuyển tới Google qua SSO. Sau khi quay về app, FE gọi `GET /api/v1/auth/me` lấy chủ và `csrf_token`; mọi mutation cookie cần `Origin: https://task.huyab.cfd` và `X-CSRF-Token`. `POST /api/v1/auth/logout` trả `redirect_url`: trình duyệt phải đi tới đó để đăng xuất toàn SSO. Backend không lưu JWT trong DB hay trả JWT cho JavaScript.
 
 Email allowlist được kiểm tra trên mỗi request; lần đăng nhập đầu ghim issuer/sub. `POST /api/v1/tasks/{task_id}/close-owner` chỉ nhận chủ web, payload giống CLI nhưng task_id ở path. UI phải xác nhận đúng task/version/owner/generation; conflict giữ nguyên draft và yêu cầu người dùng xem lại.
 

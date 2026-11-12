@@ -22,7 +22,7 @@ GitHub Issues/Milestones giữ tiến độ trực tiếp. Tài liệu này là 
 | Client thực tế #5 | SDK protocol đã test; chưa chứng minh Claude Code/Codex bàn giao thực tế trên hai môi trường |
 | Backup/deploy/tích hợp #7–#12 | Chưa triển khai. Không dùng dữ liệu thật hoặc suy ra đã có production |
 
-Người dùng đã duyệt backend auth qua SSO hiện có, một email allowlist riêng và domain `task.huyab.click`, cùng frontend theo A và UI thu hồi. Chưa duyệt deploy/DNS.
+Người dùng đã duyệt backend auth qua SSO hiện có, một email allowlist riêng và domain `task.huyab.cfd`, cùng frontend theo A và UI thu hồi. Chưa duyệt deploy/DNS.
 
 ## Bước tiếp theo cụ thể
 
@@ -77,6 +77,6 @@ Mở `http://127.0.0.1:4193/?v=a`. URL localhost từ chat chỉ là preview c�
 ## Những gì còn chưa rõ
 
 - “ATF” do người dùng nhắc chưa được giải nghĩa/chọn công cụ. Hiện có automated tests + CI; không tự khẳng định đã có ATF.
-- Domain đã chốt `task.huyab.click`; email chủ lưu ở cấu hình riêng, không đưa vào tài liệu public. SSO sub được ghim từ JWT hợp lệ đầu tiên. Host/deploy chưa chốt; không suy ra quyền triển khai từ quyết định auth.
+- Domain đã chốt `task.huyab.cfd`; email chủ lưu ở cấu hình riêng, không đưa vào tài liệu public. SSO sub được ghim từ JWT hợp lệ đầu tiên. Host/deploy chưa chốt; không suy ra quyền triển khai từ quyết định auth.
 - Các câu trả lời A/B/C cũ không còn câu hỏi tương ứng trong lịch sử bàn giao không đủ để suy ra yêu cầu mới. Dùng yêu cầu đã ghi rõ trong product/issues; hỏi lại nếu gặp mâu thuẫn.
 - Không có cam kết latency cực thấp hoặc sức chứa host: cần benchmark #8. Không đổi sang Go/Rust; người dùng giữ stack Node/Hono.
